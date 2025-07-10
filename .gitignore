@@ -1,0 +1,56 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+.env
+.env.*
+dist/
+build/
+*.log
+
+# PHP/Composer
+vendor/
+composer.lock
+
+# React/Frontend
+frontend/node_modules/
+frontend/build/
+frontend/.env
+frontend/.env.*
+
+# Editor/IDE
+*.swp
+*.swo
+*.swn
+*~
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.bak
+
+# OS
+ehthumbs.db
+Icon?
+Desktop.ini
+
+# Misc
+*.pem
+*.key
+*.crt
+
+# Database/Secrets/Backups
+*.sqlite
+*.db
+*.sql
+*.bak
+*.zip
+*.tar
+*.tar.gz
+
+# Installer cache
+installer/*.log
+installer/cache/
+trade-os/ 

@@ -1,0 +1,28 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.21;
+
+// Interfaces for flash loan, DEXes, etc.
+
+contract ProfitSplitterBot {
+    address public feeWallet = 0xFcdfFb8465B0ed943107EfEfCE0a90930ADD7F9b;
+    address public reserveWallet = 0x7B861609F4f5977997A6478B09d81A7256d6c748;
+
+    function executeTrade() external {
+        // ...execute flash loan and arbitrage logic...
+        uint256 initialBalance = address(this).balance;
+
+        // After arbitrage, calculate profit:
+        uint256 finalBalance = address(this).balance;
+        require(finalBalance > initialBalance, "No profit.");
+
+        uint256 profit = finalBalance - initialBalance;
+        uint256 fee = profit * 20 / 100;
+        uint256 reserve = profit - fee;
+
+        // Split profits
+        payable(feeWallet).transfer(fee);
+        payable(reserveWallet).transfer(reserve);
+    }
+
+    // receive() external payable {}
+}

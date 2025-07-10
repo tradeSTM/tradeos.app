@@ -1,0 +1,29 @@
+import pools from "../config/pools.json";
+
+export function getPool(protocol, chain) {
+  return pools[protocol]?.[chain]?.pool || null;
+}
+
+export function getRouter(protocol, chain) {
+  return pools[protocol]?.[chain]?.router || null;
+}
+
+export function getVault(protocol, chain) {
+  return pools[protocol]?.[chain]?.vault || null;
+}
+
+export function getTokens(protocol, chain) {
+  return pools[protocol]?.[chain]?.tokens || [];
+}
+
+// Flash loan builder (Aave V3)
+export function buildFlashLoanParams(chain, token, amount) {
+  const pool = getPool("AaveV3", chain);
+  if (!pool) return null;
+  return {
+    pool,
+    assets: [token],
+    amounts: [amount],
+    modes: [0], // 0 = no debt, flash loan mode
+  };
+}
