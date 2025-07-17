@@ -10,3 +10,5 @@ tradeos.app/
 # Environment files
 .env
 tradeos.app/
+# Ignore all local dependencies
+node_modules/
