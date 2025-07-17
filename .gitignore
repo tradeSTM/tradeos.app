@@ -1,2 +1,4 @@
 echo .vs/ >> .gitignore
 .vs/ 
+# ↓ ignore everything in node_modules
+node_modules/
