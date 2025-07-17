@@ -1,4 +1,11 @@
-echo .vs/ >> .gitignore
-.vs/ 
-# ↓ ignore everything in node_modules
+# Dependencies and build artifacts
 node_modules/
+.next/
+tradeos.app/
+
+# Shell and PowerShell scripts
+*.sh
+*.ps1
+
+# Environment files
+.env
