@@ -22,3 +22,6 @@ echo 💻 5) Start dev server…
 start cmd /k "npm run dev"
 
 pause
+:: 7) Deploy all onchain contracts
+echo 🎯 Deploying EVM & Solana…
+npm run deploy:all
