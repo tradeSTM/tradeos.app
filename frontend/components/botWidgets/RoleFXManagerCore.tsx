@@ -5,54 +5,50 @@ import {
   getFXProfile,
   getChainContext,
   getUserBots,
-  getAggregatorStatus,
-  FXProfile,
-  ChainContext,
-  BotInfo,
-  AggregatorStatus,
+  getAggregatorStatus
 } from '../services/fxService'
 
+// Optional: define FX metadata types if used elsewhere
 interface RoleFXManagerCoreProps {
   user: {
     id: string
     role: string
     chain: string
     milestones: string[]
-    lastActive: string  // ISO date string
+    lastActive: string
   }
 }
 
 const RoleFXManagerCore: React.FC<RoleFXManagerCoreProps> = ({ user }) => {
-  const fxProfile: FXProfile = getFXProfile(user.role)
-  const chainFX: ChainContext = getChainContext(user.chain)
-  const bots: BotInfo[] = getUserBots(user.id)
-  const aggregators: AggregatorStatus = getAggregatorStatus()
+  const fxProfile = getFXProfile(user.role)
+  const chainFX = getChainContext()
+  const bots = getUserBots(user.id)
+  const aggregators = getAggregatorStatus()
 
   useEffect(() => {
-    // 1) FX Glow + Ripple
     document.body.style.setProperty('--fx-glow', fxProfile.glowColor)
-    document.body.classList.add(`fx-${chainFX.ripple}`)
 
-    // 2) Synth Trigger on milestone
+    // Ripple class fallback logic (if ripple not present)
+    const rippleClass = chainFX.ripple || 'default-ripple'
+    document.body.classList.add(`fx-${rippleClass}`)
+
     if (user.milestones.includes('InvestorSpark')) {
-      new Audio('/sounds/synthPulse.mp3').play()
+      const synth = new Audio('/sounds/synthPulse.mp3')
+      synth.play().catch(() => {})
     }
 
-    // 3) Time‐decay FX: fade after 30 days of inactivity
-    const days =
-      (Date.now() - new Date(user.lastActive).getTime()) /
-      (1000 * 60 * 60 * 24)
-    const opacity = Math.max(1 - days / 30, 0.3)
-    document.body.style.setProperty('--fx-opacity', `${opacity}`)
+    const daysInactive =
+      (Date.now() - new Date(user.lastActive).getTime()) / (1000 * 60 * 60 * 24)
+    const fade = Math.max(1 - daysInactive / 30, 0.3)
+    document.body.style.setProperty('--fx-opacity', `${fade}`)
   }, [
     fxProfile.glowColor,
     chainFX.ripple,
-    user.milestones.join(','),  // stringify array for comparison
-    user.lastActive,
+    user.milestones.join(','),
+    user.lastActive
   ])
 
-  // If you want to render UI here, swap out null for JSX
-  return null
+  return null // Or render JSX with bots/aggregator status
 }
 
 export default RoleFXManagerCore

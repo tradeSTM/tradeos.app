@@ -1,102 +1,60 @@
-﻿// File: frontend/components/services/fxService.ts
+﻿// 🧠 TradeOS FX Service — Chain Context, Badge Tier, Bot Registry
 
-// 1. Interfaces
-export interface FXProfile {
-  role: string
-  tier: 'bronze' | 'silver' | 'gold'
-  lastUpdate: number
-  glowColor: string            // CSS color for FX glow
+export function getChainContext(): { chain: string; rpc: string } {
+  const chainMap: Record<string, { chain: string; rpc: string }> = {
+    // 🟢 EVM Chains
+    '0x1':      { chain: 'Ethereum',        rpc: 'https://ethereum.publicnode.com' },
+    '0x38':     { chain: 'BSC',             rpc: 'https://bsc-dataseed.binance.org' },
+    '0x89':     { chain: 'Polygon',         rpc: 'https://polygon-rpc.com' },
+    '0xa':      { chain: 'Optimism',        rpc: 'https://mainnet.optimism.io' },
+    '0x2105':   { chain: 'Base',            rpc: 'https://mainnet.base.org' },
+    '0x64':     { chain: 'Gnosis',          rpc: 'https://rpc.gnosischain.com' },
+    '0x66eed':  { chain: 'Arbitrum Nova',   rpc: 'https://nova.arbitrum.io/rpc' },
+    '0x539':    { chain: 'Localhost',       rpc: 'http://127.0.0.1:8545' },
+
+    // 🔵 Non-EVM Placeholders (for adapter sync)
+    'solana':   { chain: 'Solana',          rpc: 'https://api.mainnet-beta.solana.com' },
+    'near':     { chain: 'NEAR',            rpc: 'https://rpc.mainnet.near.org' }
+  };
+
+  try {
+    if (typeof window !== 'undefined' && (window as any).ethereum?.networkVersion) {
+      const hexId = '0x' + parseInt((window as any).ethereum.networkVersion).toString(16);
+      return chainMap[hexId] ?? { chain: 'Unknown', rpc: '' };
+    }
+  } catch (err) {
+    console.warn('⚠️ ChainContext error:', err);
+    return { chain: 'Error', rpc: '' };
+  }
+
+  return { chain: 'Offline', rpc: '' };
 }
 
-export interface ChainContext {
-  chain: string
-  chainId: number
-  network: 'ethereum' | 'polygon' | 'optimism' | 'base' | 'solana'
-  type: 'EVM' | 'Solana'
-  rpcUrl: string
-  ripple: string               // CSS class or key for ripple effect
+export function getUserBots(user: string): string[] {
+  // 🧠 Later: Map this to badge tier or vault scanner status
+  return ['BotFX1', 'VaultScanner', 'ArbitrageGhost'];
 }
 
-export interface BotInfo {
-  id: string
-  owner: string
-  status: string
+export function getAggregatorStatus(): string {
+  // 🔄 Replace with real health check ping later
+  return '✅ Online';
 }
 
-export interface AggregatorStatus {
-  name: string
-  feeTier: number
-}
+export function getFXProfile(role: string): {
+  role: string;
+  tier: string;
+  glowColor: string;
+  lastUpdate: number;
+} {
+  const tiers: Record<string, { tier: string; glowColor: string }> = {
+    contributor: { tier: 'bronze', glowColor: '#cd7f32' },
+    maintainer:  { tier: 'silver', glowColor: '#c0c0c0' },
+    governor:    { tier: 'gold',   glowColor: '#ffd700' },
+  };
 
-
-// 2. Functions
-
-export function getFXProfile(role: string): FXProfile {
   return {
     role,
-    tier: 'bronze',
-    lastUpdate: Date.now(),
-    glowColor: '#4caf50',
-  }
-}
-
-export function getChainContext(chain: string): ChainContext {
-  const key = chain.toLowerCase()
-  switch (key) {
-    case 'ethereum':
-      return {
-        chain: 'ethereum',
-        chainId: 1,
-        network: 'ethereum',
-        type: 'EVM',
-        rpcUrl: 'https://mainnet.infura.io/v3/YOUR_KEY',
-        ripple: 'eth-ripple',
-      }
-    case 'polygon':
-      return {
-        chain: 'polygon',
-        chainId: 137,
-        network: 'polygon',
-        type: 'EVM',
-        rpcUrl: 'https://polygon-rpc.com',
-        ripple: 'poly-ripple',
-      }
-    case 'optimism':
-      return {
-        chain: 'optimism',
-        chainId: 10,
-        network: 'optimism',
-        type: 'EVM',
-        rpcUrl: 'https://mainnet.optimism.io',
-        ripple: 'op-ripple',
-      }
-    case 'base':
-      return {
-        chain: 'base',
-        chainId: 8453,
-        network: 'base',
-        type: 'EVM',
-        rpcUrl: 'https://mainnet.base.org',
-        ripple: 'base-ripple',
-      }
-    case 'solana':
-      return {
-        chain: 'solana',
-        chainId: 0,
-        network: 'solana',
-        type: 'Solana',
-        rpcUrl: 'https://api.mainnet-beta.solana.com',
-        ripple: 'sol-ripple',
-      }
-    default:
-      throw new Error(`Unsupported chain: ${chain}`)
-  }
-}
-
-export function getUserBots(userId: string): BotInfo[] {
-  return [{ id: 'bot1', owner: userId, status: 'running' }]
-}
-
-export function getAggregatorStatus(): AggregatorStatus {
-  return { name: 'Uniswap', feeTier: 0.3 }
+    ...(tiers[role] || tiers.contributor),
+    lastUpdate: Date.now()
+  };
 }

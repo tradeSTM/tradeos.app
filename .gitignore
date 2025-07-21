@@ -3,7 +3,10 @@ node_modules/
 .next/
 out/
 dist/
-docs/
+# Ignore all of docs except CNAME
+docs/*
+!docs/CNAME
+
 
 # 🔒 Environment variables
 .env
