@@ -1,4 +1,5 @@
 import { createTheme } from '@mui/material/styles';
+import { ClaimPanel } from '../components/claim/ClaimPanel';
 
 export const neonTheme = createTheme({
   palette: {
@@ -60,3 +61,12 @@ export const neonTheme = createTheme({
     },
   },
 });
+
+// In your page component:
+const claims = [/* your claims data */];
+
+const handleClaim = async (tokenAddress: string) => {
+  // Your claim logic here
+};
+
+<ClaimPanel claims={claims} onClaim={handleClaim} />

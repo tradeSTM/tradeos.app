@@ -1,0 +1,19 @@
+{
+  "name": "tradeos-contracts",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "deploy:mainnet": "hardhat run scripts/deploy.ts --network mainnet",
+    "deploy:polygon": "hardhat run scripts/deploy.ts --network polygon",
+    "deploy:arbitrum": "hardhat run scripts/deploy.ts --network arbitrum",
+    "deploy:optimism": "hardhat run scripts/deploy.ts --network optimism",
+    "deploy:bsc": "hardhat run scripts/deploy.ts --network bsc",
+    "deploy:goerli": "hardhat run scripts/deploy.ts --network goerli",
+    "verify:mainnet": "hardhat verify --network mainnet",
+    "verify:polygon": "hardhat verify --network polygon",
+    "verify:arbitrum": "hardhat verify --network arbitrum",
+    "verify:optimism": "hardhat verify --network optimism",
+    "verify:bsc": "hardhat verify --network bsc",
+    "verify:goerli": "hardhat verify --network goerli"
+  }
+}
