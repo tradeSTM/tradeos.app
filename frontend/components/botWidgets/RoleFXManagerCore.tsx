@@ -28,8 +28,8 @@ const RoleFXManagerCore: React.FC<RoleFXManagerCoreProps> = ({ user }) => {
   useEffect(() => {
     document.body.style.setProperty('--fx-glow', fxProfile.glowColor)
 
-    // Ripple class fallback logic (if ripple not present)
-    const rippleClass = chainFX.ripple || 'default-ripple'
+    // Ripple class fallback logic (using chain name as fallback)
+    const rippleClass = chainFX.chain || 'default-ripple'
     document.body.classList.add(`fx-${rippleClass}`)
 
     if (user.milestones.includes('InvestorSpark')) {
@@ -43,7 +43,7 @@ const RoleFXManagerCore: React.FC<RoleFXManagerCoreProps> = ({ user }) => {
     document.body.style.setProperty('--fx-opacity', `${fade}`)
   }, [
     fxProfile.glowColor,
-    chainFX.ripple,
+    chainFX.chain,
     user.milestones.join(','),
     user.lastActive
   ])

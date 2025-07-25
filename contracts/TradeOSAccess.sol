@@ -15,4 +15,6 @@ contract TradeOSAccess is Ownable {
     }
 
     function addAdmin(address user) external onlyOwner {
-        admins
+        admins[user] = true;
+        emit AdminAdded(user);
+    }

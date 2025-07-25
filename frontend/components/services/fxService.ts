@@ -19,8 +19,14 @@ export function getChainContext(): { chain: string; rpc: string } {
 
   try {
     if (typeof window !== 'undefined' && (window as any).ethereum?.networkVersion) {
-      const hexId = '0x' + parseInt((window as any).ethereum.networkVersion).toString(16);
-      return chainMap[hexId] ?? { chain: 'Unknown', rpc: '' };
+      const networkVersion = (window as any).ethereum.networkVersion;
+      if (!isNaN(Number(networkVersion))) {
+        const hexId = '0x' + parseInt(networkVersion, 10).toString(16);
+        return chainMap[hexId] ?? { chain: 'Unknown', rpc: '' };
+      } else {
+        console.warn('⚠️ Invalid networkVersion:', networkVersion);
+        return { chain: 'Unknown', rpc: '' };
+      }
     }
   } catch (err) {
     console.warn('⚠️ ChainContext error:', err);
@@ -30,9 +36,19 @@ export function getChainContext(): { chain: string; rpc: string } {
   return { chain: 'Offline', rpc: '' };
 }
 
-export function getUserBots(user: string): string[] {
+export type BotInfo = {
+  name: string;
+  description: string;
+  status: string;
+};
+
+export function getUserBots(user: string): BotInfo[] {
   // 🧠 Later: Map this to badge tier or vault scanner status
-  return ['BotFX1', 'VaultScanner', 'ArbitrageGhost'];
+  return [
+    { name: 'BotFX1', description: 'Foreign exchange bot', status: 'active' },
+    { name: 'VaultScanner', description: 'Scans vaults for arbitrage', status: 'active' },
+    { name: 'ArbitrageGhost', description: 'Executes arbitrage strategies', status: 'inactive' }
+  ];
 }
 
 export function getAggregatorStatus(): string {
