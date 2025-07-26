@@ -1,0 +1,14 @@
+FROM node:18-alpine
+
+WORKDIR /app/contracts
+
+# Install dependencies first (caching)
+COPY package*.json ./
+RUN npm ci
+
+# Copy hardhat config and contracts
+COPY . .
+
+EXPOSE 8545
+
+CMD ["npx", "hardhat", "node"]
