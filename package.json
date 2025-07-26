@@ -4,14 +4,15 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development node scripts/dev-server.js",
     "dev:hot": "cross-env NODE_ENV=development PORT=3003 next dev",
-    "build": "next build",
+    "build": "next build && next export",
     "start": "next start -p 3003",
     "clean": "rimraf .next out",
     "lint": "next lint",
     "dev:debug": "NODE_OPTIONS='--inspect' next dev",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "deploy": "next build && touch out/.nojekyll && gh-pages -d out -t true"
   },
   "dependencies": {
     "next": "^15.4.1",
