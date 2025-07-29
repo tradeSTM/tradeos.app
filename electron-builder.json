@@ -1,43 +1,24 @@
 # TradeOS Windows Installer Configuration
 {
-  "appName": "TradeOS",
-  "version": "1.0.0",
-  "publisher": "TradeSTM",
-  "installerType": "NSIS",
-  "win": {
-    "icon": "assets/icon.ico",
-    "target": [
-      "nsis",
-      "portable"
-    ],
-    "artifactName": "${productName}-Setup-${version}.${ext}"
-  },
-  "nsis": {
-    "oneClick": true,
-    "perMachine": false,
-    "allowToChangeInstallationDirectory": false,
-    "deleteAppDataOnUninstall": true,
-    "createDesktopShortcut": true,
-    "createStartMenuShortcut": true,
-    "shortcutName": "TradeOS",
-    "installerIcon": "assets/icon.ico",
-    "uninstallerIcon": "assets/icon.ico",
-    "installerHeaderIcon": "assets/icon.ico"
-  },
+  "appId": "com.tradeos.app",
+  "productName": "TradeOS",
   "directories": {
-    "output": "release",
-    "buildResources": "assets"
+    "output": "dist"
   },
   "files": [
     "dist/**/*",
-    "node_modules/**/*",
     "package.json"
   ],
-  "extraResources": [
-    {
-      "from": "assets",
-      "to": "assets",
-      "filter": ["**/*"]
-    }
-  ]
+  "win": {
+    "target": ["nsis"],
+    "icon": "assets/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "installerIcon": "assets/icon.ico",
+    "uninstallerIcon": "assets/icon.ico",
+    "license": "LICENSE",
+    "artifactName": "${productName}-Setup-${version}.${ext}"
+  }
 }

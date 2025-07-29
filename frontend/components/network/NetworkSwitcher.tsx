@@ -2,6 +2,7 @@ import React from 'react';
 import { useWeb3React } from '@web3-react/core';
 import { SUPPORTED_NETWORKS } from '../config/networks';
 import Image from 'next/image';
+import { ethers } from 'ethers';
 
 interface NetworkSwitcherProps {
   className?: string;
@@ -11,7 +12,7 @@ export const NetworkSwitcher: React.FC<NetworkSwitcherProps> = ({ className }) =
   const { chainId, library, account } = useWeb3React();
   const [isChanging, setIsChanging] = React.useState(false);
 
-  const switchNetwork = async (targetChainId: number) => {
+  const switchNetwork = React.useCallback(async (targetChainId: number) => {
     if (!library?.provider?.request) {
       console.error('No provider available');
       return;
@@ -20,6 +21,21 @@ export const NetworkSwitcher: React.FC<NetworkSwitcherProps> = ({ className }) =
     const network = SUPPORTED_NETWORKS[targetChainId];
     if (!network) {
       console.error('Network not supported');
+      return;
+    }
+
+    // Check network readiness before switching
+    try {
+      const networkStatus = await library.provider.request({
+        method: 'eth_getBlockByNumber',
+        params: ['latest', false],
+      });
+      
+      if (!networkStatus) {
+        throw new Error('Network not responding');
+      }
+    } catch (error) {
+      console.error('Network health check failed:', error);
       return;
     }
 
@@ -69,7 +85,6 @@ export const NetworkSwitcher: React.FC<NetworkSwitcherProps> = ({ className }) =
               src={currentNetwork.iconUrl} 
               alt={currentNetwork.name} 
               width={24} 
-              height={24} 
             />
             <span>{currentNetwork.name}</span>
           </>
@@ -157,3 +172,38 @@ const styles = `
   cursor: not-allowed;
 }
 `;
+
+// Gas estimation example:
+const gasEstimate = await estimateGas('ContractName');
+console.log(`Deployment cost: ${gasEstimate.totalCost} ETH`);
+
+// Local verification example:
+await verifyLocalContract(deployedStep);
+if (deployedStep.localVerification?.bytecodeMatch) {
+  console.log('Contract verified locally');
+}
+
+// Usage example:
+<DeploymentMonitor 
+  contracts={contractsToDeployList}
+  network={activeNetwork}
+  onComplete={handleDeploymentComplete}
+/>
+
+// Network monitoring setup
+const [showMonitoring, setShowMonitoring] = useState(false);
+const [alerts, setAlerts] = useState<string[]>([]);
+
+const handleNetworkAlerts = (newAlerts: string[]) => {
+  setAlerts(newAlerts);
+  newAlerts.forEach(alert => console.warn('Network Alert:', alert));
+};
+
+// Monitoring dashboard component
+{showMonitoring && (
+  <NetworkMonitoringDashboard
+    isVIP={account ? true : false} // You can replace this with your actual VIP check
+    onAlert={handleNetworkAlerts}
+    className="network-monitoring"
+  />
+)}

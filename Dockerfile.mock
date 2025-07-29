@@ -1,0 +1,17 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install dependencies
+COPY package*.json ./
+RUN yarn install --production
+
+# Copy mock server files
+COPY test/mocks ./mocks
+COPY test/server.js ./server.js
+
+# Expose port
+EXPOSE 3001
+
+# Start mock server
+CMD ["node", "server.js"]

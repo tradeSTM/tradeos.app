@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+      args:
+        NODE_ENV: test
+    ports:
+      - "4200:4200"
+    environment:
+      - NODE_ENV=test
+      - PORT=4200
+      - NEXT_PUBLIC_API_URL=http://localhost:4201
+      - NEXT_PUBLIC_MOCK_MODE=true
+      - NEXT_PUBLIC_AUTO_LOGIN=true
+      - TEST_ADMIN_ADDRESS=0x742d35Cc6634C0532925a3b844Bc454e4438f44e
+    volumes:
+      - ./frontend:/app/frontend
+      - ./test/mocks:/app/test/mocks
+
+  test-chain:
+    image: trufflesuite/ganache-cli:latest
+    ports:
+      - "8585:8585"
+    environment:
+      - PORT=8585
+    command: >
+      --deterministic
+      --mnemonic "test test test test test test test test test test test junk"
+      --chainId 1337
+      --blockTime 12
+      --gasLimit 12000000
+      --accounts 10
+      --defaultBalanceEther 10000
+
+  core-mock:
+    build:
+      context: .
+      dockerfile: Dockerfile.mock
+    ports:
+      - "4201:4201"
+    environment:
+      - NODE_ENV=test
+      - PORT=4201
+      - MOCK_DELAY=100
+      - MOCK_FAIL_RATE=0.1
+    volumes:
+      - ./test/mocks:/app/mocks

@@ -2,7 +2,7 @@
   "name": "tradeos-app",
   "version": "1.0.0",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development node scripts/dev-server.js",
+    "dev": "cross-env NODE_ENV=development PORT=3003 node scripts/dev-server.js",
     "dev:hot": "cross-env NODE_ENV=development PORT=3003 next dev",
     "build": "next build && next export",
     "start": "next start -p 3003",
@@ -31,9 +31,9 @@
     "@types/jest": "^29.5.14",
     "@types/react": "^18.2.0",
     "cross-env": "^7.0.3",
-    "rimraf": "^5.0.1",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
+    "rimraf": "^5.0.1",
     "ts-jest": "^29.4.0"
   }
 }
